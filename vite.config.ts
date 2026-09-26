@@ -5,6 +5,6 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
-    include: ["src/**/*.test.ts", "functions/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "test/**/*.test.ts", "functions/**/*.test.ts", "scripts/**/*.test.ts"],
   },
 });

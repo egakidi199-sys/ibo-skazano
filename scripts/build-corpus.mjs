@@ -102,6 +102,8 @@ function parseBook(file) {
     headings["1"] = normalizeText(pre.get(0).join(" "));
     chapters.delete(0);
   }
+  // Пс 151 — неканонический («вне числа», в синодальном издании целиком в скобках).
+  if (file === "23-psalms") chapters.delete(151);
 
   const numbers = [...chapters.keys()].sort((a, b) => a - b);
   numbers.forEach((n, i) => {
@@ -168,6 +170,7 @@ for (const [abbr, c, v, needle] of checks) {
   if (!plain(verse(abbr, c, v)).includes(needle)) fail(`эталон ${abbr} ${c}:${v} не содержит «${needle}»`);
 }
 if (corpus.mal.length !== 4) fail(`Мал: ожидалось 4 главы, найдено ${corpus.mal.length}`);
+if (corpus.ps.length !== 150) fail(`Пс: ожидалось 150 псалмов, найдено ${corpus.ps.length}`);
 if (Object.keys(corpus).length !== 43) fail("ожидалось 43 книги");
 
 if (errors.length) {
