@@ -142,6 +142,8 @@ async function generateOpenAiCompatible({
       ],
       response_format: {
         type: "json_schema",
+        // Без strict: со strict Groq отвечает 400 на любой сбой генерации, а так неверные
+        // кандидаты отсеиваются по одному (lenientArray в schema.ts).
         json_schema: { name: "quote_candidates", schema },
       },
     }),

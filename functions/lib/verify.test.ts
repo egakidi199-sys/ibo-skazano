@@ -128,3 +128,20 @@ describe("sanitizeExplanation", () => {
     expect(sanitizeExplanation("Слова «не мсти» прямо относятся к ситуации.")).toBe("Слова «не мсти» прямо относятся к ситуации.");
   });
 });
+
+describe("LlmOutputSchema: неверные кандидаты отсеиваются по одному", () => {
+  it("stance вне enum и пропущенное пояснение не роняют ответ", async () => {
+    const { LlmOutputSchema } = await import("./schema");
+    const out = LlmOutputSchema.parse({
+      sensitive: true,
+      thesis: "т",
+      no_direct_support: false,
+      candidates: [
+        { ref: "Мф 5:44", keywords: ["любите"], explanation: "ок", stance: "refute" },
+        { ref: "Притч 13:25", keywords: ["розги"], explanation: "x", stance: "neutral" },
+        { ref: "Лев 19:18", keywords: ["мсти"], stance: "refute" },
+      ],
+    });
+    expect(out.candidates.map((c) => c.ref)).toEqual(["Мф 5:44"]);
+  });
+});

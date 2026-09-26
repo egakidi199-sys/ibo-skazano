@@ -19,22 +19,32 @@ export const QuoteRequestSchema = z.object({
 
 export const MAX_CANDIDATES = 8;
 
+/** Массив, из которого молча выбрасываются элементы, не прошедшие схему: один неверный
+ * кандидат (например, stance «neutral») не должен ронять весь ответ модели. */
+function lenientArray<T extends z.ZodType>(item: T) {
+  return z
+    .array(z.unknown())
+    .max(20)
+    .transform((xs) => xs.flatMap((x) => {
+      const r = item.safeParse(x);
+      return r.success ? [r.data as z.infer<T>] : [];
+    }));
+}
+
+const CandidateSchema = z.object({
+  ref: z.string(),
+  keywords: z.array(z.string()),
+  explanation: z.string(),
+  stance: z.enum(["confirm", "refute"]),
+});
+
 // Ответ модели. Поля для текста стиха нет намеренно: текст берётся только из корпуса
 // (главный инвариант, design D4).
 export const LlmOutputSchema = z.object({
   sensitive: z.boolean(),
   thesis: z.string(),
   no_direct_support: z.boolean(),
-  candidates: z
-    .array(
-      z.object({
-        ref: z.string(),
-        keywords: z.array(z.string()),
-        stance: z.enum(["confirm", "refute"]),
-        explanation: z.string(),
-      }),
-    )
-    .max(20),
+  candidates: lenientArray(CandidateSchema),
 });
 
 export type LlmOutput = z.infer<typeof LlmOutputSchema>;
@@ -55,14 +65,53 @@ export const LLM_JSON_SCHEMA = {
         properties: {
           ref: { type: "string" },
           keywords: { type: "array", items: { type: "string" } },
-          stance: { type: "string", enum: ["confirm", "refute"] },
+          // Пояснение до направленности: модель сначала формулирует смысл стиха,
+          // потом выводит из него пометку (эталонный прогон 7.2).
           explanation: { type: "string" },
+          stance: { type: "string", enum: ["confirm", "refute"] },
         },
-        required: ["ref", "keywords", "stance", "explanation"],
+        required: ["ref", "keywords", "explanation", "stance"],
         additionalProperties: false,
       },
     },
   },
   required: ["sensitive", "thesis", "no_direct_support", "candidates"],
+  additionalProperties: false,
+} as const;
+
+// --- второй проход: оценка стихов по их точному тексту (design D5a) ---
+
+export const GroundOutputSchema = z.object({
+  items: lenientArray(
+    z.object({
+      n: z.number().int(),
+      relevant: z.boolean(),
+      explanation: z.string(),
+      stance: z.enum(["confirm", "refute"]),
+    }),
+  ),
+});
+
+export type GroundOutput = z.infer<typeof GroundOutputSchema>;
+
+export const GROUND_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          n: { type: "integer" },
+          relevant: { type: "boolean" },
+          explanation: { type: "string" },
+          stance: { type: "string", enum: ["confirm", "refute"] },
+        },
+        required: ["n", "relevant", "explanation", "stance"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["items"],
   additionalProperties: false,
 } as const;

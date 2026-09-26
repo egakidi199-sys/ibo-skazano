@@ -13,13 +13,17 @@ import { FEW_SHOT, SYSTEM_PROMPT, buildUserPrompt } from "../lib/prompts";
 import { checkRateLimit, type RateLimitEnv } from "../lib/rateLimit";
 import { LLM_JSON_SCHEMA, LlmOutputSchema, QuoteRequestSchema, type LlmOutput } from "../lib/schema";
 import { hasBothSides, supplementSides } from "../lib/supplement";
-import { verifyCandidates } from "../lib/verify";
+import { groundQuotes } from "../lib/ground";
+import { selectQuotes, verifyAll, type VerifiedQuote } from "../lib/verify";
 
 type Env = LlmEnv & RateLimitEnv & AssetsEnv;
 
 const BUDGET_MS = 9000;
 const ATTEMPT_TIMEOUT_MS = 6000;
 const MIN_RETRY_MS = 3000;
+// Второй проход запускается, только если в бюджете осталось не меньше этого (design D5a).
+const MIN_GROUND_MS = 1500;
+const GROUND_TIMEOUT_MS = 4000;
 
 class InvalidOutput extends Error {}
 
@@ -46,10 +50,13 @@ async function askLlm(env: Env, req: QuoteRequest, started: number): Promise<Llm
         Math.min(ATTEMPT_TIMEOUT_MS, left - 500),
       );
       const parsed = LlmOutputSchema.safeParse(raw);
-      if (!parsed.success) throw new InvalidOutput("schema");
+      if (!parsed.success) throw new InvalidOutput(`schema: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.code}`).join(", ").slice(0, 150)}`);
       return parsed.data;
     } catch (err) {
-      const retryable = err instanceof InvalidOutput || err instanceof SyntaxError;
+      // Невалидный ответ модели, в том числе когда провайдер сам не смог уложить генерацию
+      // в JSON-схему (Groq: HTTP 400 «Failed to generate JSON») — пробуем ещё раз.
+      const providerJsonFailure = err instanceof Error && /Failed to generate JSON|does not match the expected schema/.test(err.message);
+      const retryable = err instanceof InvalidOutput || err instanceof SyntaxError || providerJsonFailure;
       console.error(`[quote] attempt ${attempt}: ${err instanceof Error ? `${err.name}: ${err.message.slice(0, 200)}` : "error"}`);
       if (!retryable) return null;
     }
@@ -86,10 +93,26 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const sensitive = out.sensitive || isHarmJustification(req.situation, req.thesis ?? "");
   const position: Position = sensitive ? "both" : req.position;
 
-  const verified = await verifyCandidates({ candidates: out.candidates, position, exclude: req.exclude ?? [] }, reader);
-  if (!verified) return fallback(); // ни одна ссылка не прошла сверку
+  let verified: VerifiedQuote[] = await verifyAll({ candidates: out.candidates, exclude: req.exclude ?? [] }, reader);
+  if (verified.length === 0) return fallback(); // ни одна ссылка не прошла сверку
 
-  let { quotes, noDirectSupport } = verified;
+  // Второй проход: направленность и пояснения — по точному тексту стихов (design D5a).
+  // При сбое или нехватке времени остаётся результат первого прохода.
+  const left = BUDGET_MS - (Date.now() - started);
+  if (left >= MIN_GROUND_MS) {
+    const thesis = out.thesis.trim() || req.thesis || req.situation;
+    const grounded = await withTimeout(
+      (signal) => groundQuotes(env, { situation: req.situation, thesis }, verified, signal),
+      Math.min(GROUND_TIMEOUT_MS, left - 500),
+    ).catch((err: unknown) => {
+      console.error(`[quote] ground: ${err instanceof Error ? `${err.name}: ${err.message.slice(0, 200)}` : "error"}`);
+      return null;
+    });
+    if (grounded) verified = grounded;
+  }
+  if (verified.length === 0) return fallback(); // все стихи признаны нерелевантными
+
+  let { quotes, noDirectSupport } = selectQuotes(verified, position);
   if (position === "both" && !hasBothSides(quotes)) {
     // Модель не дала одну из сторон — добираем из тематического указателя (текст тоже из корпуса).
     const extra = await fallbackSelect({ ...req, position: "both" }, reader, { fullSearch: false });

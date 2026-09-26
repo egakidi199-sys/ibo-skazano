@@ -22,6 +22,9 @@ export interface VerifyInput {
   exclude: readonly string[];
 }
 
+/** Проверенная цитата: текст уже из корпуса, направленность — confirm/refute. */
+export type VerifiedQuote = Quote & { stance: Stance };
+
 export interface VerifyResult {
   quotes: Quote[];
   /** Среди проверенных нет цитат нужной направленности */
@@ -98,10 +101,11 @@ async function verifyOne(c: LlmCandidate, reader: CorpusReader): Promise<Verifie
   return own >= 1 ? { ref: parsed.ref, ...base } : null;
 }
 
-function select(verified: Verified[], position: Position): { picked: Verified[]; noDirectSupport: boolean } {
+/** Отбор главной и запасных по позиции (для both — обе стороны, если есть). */
+export function selectQuotes(verified: readonly VerifiedQuote[], position: Position): VerifyResult {
   const max = LIMITS.quotesMax;
-  const picked: Verified[] = [];
-  const add = (v: Verified | undefined) => {
+  const picked: VerifiedQuote[] = [];
+  const add = (v: VerifiedQuote | undefined) => {
     if (v && picked.length < max && !picked.includes(v)) picked.push(v);
   };
 
@@ -111,15 +115,19 @@ function select(verified: Verified[], position: Position): { picked: Verified[];
     add(verified.find((v) => v.stance === "refute"));
     verified.forEach(add);
     const sides = new Set(verified.map((v) => v.stance));
-    return { picked, noDirectSupport: sides.size < 2 };
+    return { quotes: picked, noDirectSupport: sides.size < 2 };
   }
   verified.filter((v) => v.stance === position).forEach(add);
   const noDirectSupport = picked.length === 0;
   if (noDirectSupport) verified.forEach(add); // ближайшие по теме с честной направленностью
-  return { picked, noDirectSupport };
+  return { quotes: picked, noDirectSupport };
 }
 
-export async function verifyCandidates(input: VerifyInput, reader: CorpusReader): Promise<VerifyResult | null> {
+/** Сверка всех кандидатов по корпусу; порядок модели сохраняется, текст — из корпуса. */
+export async function verifyAll(
+  input: Omit<VerifyInput, "position">,
+  reader: CorpusReader,
+): Promise<VerifiedQuote[]> {
   const excluded = input.exclude.flatMap((s) => {
     const r = parseRef(s);
     return r.ok ? [r.ref] : [];
@@ -141,16 +149,18 @@ export async function verifyCandidates(input: VerifyInput, reader: CorpusReader)
     if (verified.some((x) => refsOverlap(x.ref, v.ref))) continue;
     verified.push(v);
   }
-  if (verified.length === 0) return null;
-
-  const { picked, noDirectSupport } = select(verified, input.position);
-  const quotes = await Promise.all(
-    picked.map(async (v) => ({
+  return Promise.all(
+    verified.map(async (v) => ({
       ref: formatRef(v.ref),
       text: await getQuoteText(reader, v.ref),
       stance: v.stance,
       explanation: v.explanation,
     })),
   );
-  return { quotes, noDirectSupport };
+}
+
+/** Сверка и отбор в одном шаге (без второго прохода). */
+export async function verifyCandidates(input: VerifyInput, reader: CorpusReader): Promise<VerifyResult | null> {
+  const verified = await verifyAll(input, reader);
+  return verified.length ? selectQuotes(verified, input.position) : null;
 }
