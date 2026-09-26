@@ -6,11 +6,18 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+// Node 24 исполняет .ts без сборки (type stripping); stem.ts не имеет импортов.
+import { contentStems } from "../src/shared/stem.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = join(root, "data", "rst");
 const outDir = join(root, "public", "corpus");
 const booksTs = join(root, "src", "shared", "corpus", "books.ts");
+const frequentTs = join(root, "src", "shared", "corpus", "frequent.ts");
+
+// Основы, встречающиеся более чем в стольких стихах, не годятся для проверки ключевых слов
+// LLM: совпадение по «сын», «земля», «дом» ничего не доказывает (design D5).
+const FREQUENT_DF = 400;
 
 // Порядок — синодальный. abbr — каноническое сокращение для показа.
 // aliases — дополнительные написания для разбора ссылок (регистр, точки, «ё» и пробелы
@@ -196,6 +203,21 @@ const body =
   "}\n\n" +
   `export const BOOKS: readonly BookMeta[] = ${JSON.stringify(meta)};\n`;
 writeFileSync(booksTs, header + body);
+
+// --- частые основы ---
+const df = new Map();
+for (const chapters of Object.values(corpus)) {
+  for (const ch of chapters) for (const v of ch) for (const s of new Set(contentStems(v))) df.set(s, (df.get(s) ?? 0) + 1);
+}
+const frequent = [...df].filter(([, n]) => n > FREQUENT_DF).map(([s]) => s).sort();
+writeFileSync(
+  frequentTs,
+  header +
+    `/** Основы, встречающиеся более чем в ${FREQUENT_DF} стихах корпуса (${frequent.length} шт.). */
+` +
+    `export const FREQUENT_STEMS: ReadonlySet<string> = new Set(${JSON.stringify(frequent)});
+`,
+);
 
 const verses = meta.reduce((n, b) => n + b.verseCounts.reduce((a, x) => a + x, 0), 0);
 console.log(`Корпус собран: книг — ${meta.length}, стихов — ${verses}; эталоны пройдены.`);

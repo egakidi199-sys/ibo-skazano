@@ -34,3 +34,10 @@ npm run build:corpus         # data/rst/*.dat → public/corpus/*.json + src/sha
 - **Корпус.** Источник — `bibleonline/rst`, каталог `parsed/`, закреплён на коммите `2de3062` и лежит в `data/rst/` (см. `data/rst/SOURCE.md`). Нумерация синодальная. «Стих 0» источника — нецитируемое надписание (`headings`). Квадратные скобки — вставки по греческому тексту, сохраняются.
 - **Одна реализация fallback** (`src/shared/fallback.ts`) с абстракцией `CorpusReader` для сервера и клиента.
 - **TypeScript закреплён на 6.x** — `typescript-eslint@8` не поддерживает 7.
+
+## Подводные камни среды (Windows)
+
+- **Зависшие `wrangler pages dev`.** Остановка фоновой задачи не убивает дочерние `node`/`workerd`: старый сервер продолжает держать порт 8788, а новый молча не стартует — тесты идут в старый код. Перед перезапуском завершать процессы: `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` с `wrangler*pages dev` в CommandLine + `workerd` из `node_modules` проекта; проверять `Get-NetTCPConnection -LocalPort 8788`.
+- **Кириллица в curl из Git Bash** уходит не в UTF-8 — запросы к API слать из файла или скриптом (Python/Node).
+- **Groq за Cloudflare** отвечает 403 (1010) на User-Agent `Python-urllib` — задавать свой заголовок.
+- **Лимит Groq**: 8000 токенов в минуту — при ручных прогонах делать паузы ~20 с между запросами, иначе ответы уходят в fallback (429 в логе).

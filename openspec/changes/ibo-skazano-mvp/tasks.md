@@ -25,11 +25,11 @@
 
 ## 5. Серверная функция и LLM
 
-- [ ] 5.1 Перенести из Astro `functions/lib/llm.ts` (Groq / Gemini / OpenRouter, `reasoning_effort: low` для gpt-oss, `thinkingBudget: 0` для Gemini) и `rateLimit.ts`; проверить: `npm run typecheck:functions` проходит
-- [ ] 5.2 Описать Zod-схемы запроса и ответа LLM, JSON-схему для `response_format` (`functions/lib/schema.ts`) и серверный `CorpusReader` через `env.ASSETS`; проверить: typecheck проходит
-- [ ] 5.3 Написать `functions/lib/prompts.ts`: системный промпт (корпус, синодальная нумерация с примерами, честность, без отказов, признак `sensitive`, текст пользователя как данные) и few-shot для confirm / refute / both; проверить: промпт прочитан и согласован с `quote-selection`
-- [ ] 5.4 Реализовать конвейер проверки кандидатов (design D5): валидация, проверка ключевых слов, спасение сдвинутых ссылок в Псалтири и соседних стихах, дедупликация, `exclude`, отбор 1 + 2 с гарантией обеих сторон для `both`; юнит-тесты на заготовленных ответах LLM (включая «Пс 23:1 → Пс 22:1», «Рим 12:21 → отброшено»); проверить: тесты зелёные
-- [ ] 5.5 Собрать `functions/api/quote.ts`: валидация входа (400) → эвристика `sensitive` → рейт-лимит → LLM (бюджет 9 с, один повтор) → конвейер → fallback по темам / `needsClientSearch`; проверить: `npm run dev:full` и curl-запросы на ответ LLM, 400, чувствительный тезис, превышение лимита (21 запрос)
+- [x] 5.1 Перенести из Astro `functions/lib/llm.ts` (Groq / Gemini / OpenRouter, `reasoning_effort: low` для gpt-oss, `thinkingBudget: 0` для Gemini) и `rateLimit.ts`; проверить: `npm run typecheck:functions` проходит
+- [x] 5.2 Описать Zod-схемы запроса и ответа LLM, JSON-схему для `response_format` (`functions/lib/schema.ts`) и серверный `CorpusReader` через `env.ASSETS`; проверить: typecheck проходит
+- [x] 5.3 Написать `functions/lib/prompts.ts`: системный промпт (корпус, синодальная нумерация с примерами, честность, без отказов, признак `sensitive`, текст пользователя как данные) и few-shot для confirm / refute / both; проверить: промпт прочитан и согласован с `quote-selection`
+- [x] 5.4 Реализовать конвейер проверки кандидатов (design D5): валидация, проверка ключевых слов, спасение сдвинутых ссылок в Псалтири и соседних стихах, дедупликация, `exclude`, отбор 1 + 2 с гарантией обеих сторон для `both`; юнит-тесты на заготовленных ответах LLM (включая «Пс 23:1 → Пс 22:1», «Рим 12:21 → отброшено»); проверить: тесты зелёные
+- [x] 5.5 Собрать `functions/api/quote.ts`: валидация входа (400) → эвристика `sensitive` → рейт-лимит → LLM (бюджет 9 с, один повтор) → конвейер → fallback по темам / `needsClientSearch`; проверить: `npm run dev:full` и curl-запросы на ответ LLM, 400, чувствительный тезис, превышение лимита (21 запрос)
 
 ## 6. Интерфейс
 

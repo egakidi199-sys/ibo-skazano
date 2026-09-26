@@ -22,6 +22,7 @@
     "../src/shared/**/*.ts"
   ],
   "exclude": [
-    "../src/shared/**/*.test.ts"
+    "../src/shared/**/*.test.ts",
+    "**/*.test.ts"
   ]
 }
