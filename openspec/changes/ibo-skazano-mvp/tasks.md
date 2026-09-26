@@ -1,8 +1,8 @@
 ## 1. Каркас проекта
 
-- [ ] 1.1 Инициализировать Vite + React + TS + Tailwind 4, ESLint, Vitest, `react-router-dom`, `lucide-react`, `zod`, `html-to-image`, `wrangler`, `@cloudflare/workers-types` (версии и ограничение TS 6.x — по образцу AstroStrikeBack); проверить: `npm run build`, `npm run lint`, `npx vitest run` проходят на пустом проекте
-- [ ] 1.2 Создать структуру `src/shared/`, `functions/api/`, `functions/lib/`, `functions/tsconfig.json`, скрипт `typecheck:functions`, `wrangler.toml` (без боевого KV id), `.dev.vars.example`, `.gitignore`, `public/_redirects`; проверить: `npm run typecheck:functions` проходит
-- [ ] 1.3 Написать `CLAUDE.md` проекта (команды, два рантайма, инвариант «текст только из корпуса», ограничение CPU Workers) и `README.md`; сделать первый коммит; проверить: `git log` показывает коммит
+- [x] 1.1 Инициализировать Vite + React + TS + Tailwind 4, ESLint, Vitest, `react-router-dom`, `lucide-react`, `zod`, `html-to-image`, `wrangler`, `@cloudflare/workers-types` (версии и ограничение TS 6.x — по образцу AstroStrikeBack); проверить: `npm run build`, `npm run lint`, `npx vitest run` проходят на пустом проекте
+- [x] 1.2 Создать структуру `src/shared/`, `functions/api/`, `functions/lib/`, `functions/tsconfig.json`, скрипт `typecheck:functions`, `wrangler.toml` (без боевого KV id), `.dev.vars.example`, `.gitignore`, `public/_redirects`; проверить: `npm run typecheck:functions` проходит
+- [x] 1.3 Написать `CLAUDE.md` проекта (команды, два рантайма, инвариант «текст только из корпуса», ограничение CPU Workers) и `README.md`; сделать первый коммит; проверить: `git log` показывает коммит
 
 ## 2. Корпус
 

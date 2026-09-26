@@ -1,0 +1,34 @@
+# CLAUDE.md
+
+«Ибо сказано» (ibo-skazano) — веб-приложение: по описанию ситуации и тезису подбирает подлинную цитату из Синодального перевода (39 книг ВЗ + 4 Евангелия) в подтверждение или опровержение.
+
+**Источник истины по требованиям — OpenSpec:** `openspec/changes/ibo-skazano-mvp/` (proposal, specs, design, tasks), после архивации — `openspec/specs/`. Читать перед любой задачей, кроме чистого багфикса. Прогресс реализации — чекбоксы в `tasks.md`.
+
+Прообраз архитектуры — `C:\Claude\AstroStrikeBack` (не трогать его).
+
+## Главный инвариант
+
+**Текст, показываемый как текст Писания, берётся только из корпуса `public/corpus/`.** LLM возвращает только ссылки, ключевые слова, направленность и пояснение — поля для текста стиха в её схеме нет. Любое изменение, затрагивающее цитаты, проверять на этот инвариант.
+
+## Commands
+
+```bash
+npm install
+npm run dev                  # только Vite, localhost:5173; /api/quote там нет (404) → клиентский fallback
+npm run dev:full             # wrangler pages dev --proxy 5173, полный стек на 127.0.0.1:8788 (нужен .dev.vars)
+npm run build                # tsc -b (только src/) && vite build
+npm run lint                 # ESLint
+npm test                     # Vitest (src/shared, functions, scripts)
+npm run typecheck:functions  # отдельный tsc для functions/ (Workers-типы), НЕ часть build
+npm run build:corpus         # data/rst/*.dat → public/corpus/*.json + src/shared/corpus/books.ts, с проверкой эталонов
+```
+
+Деплой ручной: `npm run build && npx wrangler pages deploy dist --project-name ibo-skazano --branch main`. `wrangler login` в этой среде не работает — только `CLOUDFLARE_API_TOKEN`. Секреты: `printf '%s' '...' | npx wrangler pages secret put GROQ_API_KEY --project-name ibo-skazano` (из Bash, не PowerShell); вступают в силу со следующим деплоем. `git push` и деплой — только после подтверждения пользователя.
+
+## Architecture
+
+- **Два рантайма.** `src/` — браузер (Vite/React), `functions/` — Cloudflare Pages Function (Workers), тайпчекается отдельно. `src/shared/` — чистый TS без браузерных/Workers API, импортируется с обеих сторон **относительными путями** (без алиасов).
+- **Лимит CPU Workers (~10 мс на запрос на бесплатном тарифе).** Сервер никогда не грузит весь корпус: только книги, на которые есть ссылки (через `env.ASSETS.fetch`). Поиск по ключевым словам во всём корпусе — только в браузере.
+- **Корпус.** Источник — `bibleonline/rst`, каталог `parsed/`, закреплён на коммите `2de3062` и лежит в `data/rst/` (см. `data/rst/SOURCE.md`). Нумерация синодальная. «Стих 0» источника — нецитируемое надписание (`headings`). Квадратные скобки — вставки по греческому тексту, сохраняются.
+- **Одна реализация fallback** (`src/shared/fallback.ts`) с абстракцией `CorpusReader` для сервера и клиента.
+- **TypeScript закреплён на 6.x** — `typescript-eslint@8` не поддерживает 7.

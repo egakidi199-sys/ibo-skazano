@@ -1,0 +1,11 @@
+# Скопируй в .dev.vars (файл в .gitignore, не коммитится) и подставь свои ключи.
+# Нужен только ключ провайдера, указанного в wrangler.toml как LLM_PROVIDER
+# (по умолчанию — groq). Ключ НЕ должен попасть в клиентский бандл — он виден
+# только серверной функции functions/api/quote.ts.
+
+GROQ_API_KEY=
+
+# Альтернативные провайдеры (переключаются через LLM_PROVIDER в wrangler.toml
+# или `wrangler pages dev --var LLM_PROVIDER:gemini`):
+GEMINI_API_KEY=
+OPENROUTER_API_KEY=

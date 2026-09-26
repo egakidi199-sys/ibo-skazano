@@ -1,0 +1,14 @@
+name = "ibo-skazano"
+compatibility_date = "2026-09-26"
+pages_build_output_dir = "dist"
+
+[vars]
+LLM_PROVIDER = "groq"
+GEMINI_MODEL = "gemini-flash-latest"
+GROQ_MODEL = "openai/gpt-oss-120b"
+
+# KV для рейт-лимита. id боевого namespace проставляется при деплое (задача 8.1).
+# Без привязки лимитер работает fail-open.
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT_KV"
+# id = ""
