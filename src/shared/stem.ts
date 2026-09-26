@@ -72,9 +72,18 @@ export function normalizeWord(w: string): string {
   return w.toLowerCase().replace(/́/g, "").replace(/ё/g, "е");
 }
 
-/** Основа слова по Snowball (Russian). */
+// Словарь словоформ корпуса конечен (десятки тысяч), поэтому кеш без вытеснения.
+const stemCache = new Map<string, string>();
+
+/** Основа слова по Snowball (Russian), с кешем. */
 export function stem(input: string): string {
   const word = normalizeWord(input);
+  let cached = stemCache.get(word);
+  if (cached === undefined) stemCache.set(word, (cached = stemWord(word)));
+  return cached;
+}
+
+function stemWord(word: string): string {
   let rv = 0;
   while (rv < word.length && !VOWELS.includes(word[rv])) rv++;
   rv = Math.min(rv + 1, word.length);
@@ -140,8 +149,13 @@ function stripAdjectival(s: string): string | null {
 // --- сравнение основ ---
 
 /** Сводит частые чередования согласных к одному виду: прощ→прост, долж→долг, уч→ук. */
+function alternations(s: string): string {
+  return s.replace(/щ/g, "ст").replace(/ж/g, "г").replace(/ч/g, "к");
+}
+
+/** То же плюс без конечных гласных (проща → прост) — для нестрогого сравнения. */
 function alternationKey(s: string): string {
-  return s.replace(/щ/g, "ст").replace(/ж/g, "г").replace(/ч/g, "к").replace(/[аяеиоуыюь]+$/, "");
+  return alternations(s).replace(/[аяеиоуыюь]+$/, "");
 }
 
 const MIN_PREFIX = 4;
@@ -151,9 +165,12 @@ const MAX_PREFIX_DIFF = 4;
  * Совпадают ли основы: равны, либо после сведения чередований одна — начало другой
  * (короткая не меньше MIN_PREFIX букв, разница не больше MAX_PREFIX_DIFF).
  * «прощать/прости/прощение», «долг/долги/должник» — совпадают; «бог/богатство» — нет.
+ * prefix: false — только равенство с точностью до чередований (для распознавания тем,
+ * где совпадение по началу даёт ложные срабатывания: «пост» / «постоянно»).
  */
-export function stemsMatch(a: string, b: string): boolean {
+export function stemsMatch(a: string, b: string, { prefix = true }: { prefix?: boolean } = {}): boolean {
   if (a === b) return true;
+  if (!prefix) return alternations(a) === alternations(b);
   const x = alternationKey(a);
   const y = alternationKey(b);
   if (x === y) return x.length >= 3;
@@ -198,8 +215,12 @@ export function contentStems(text: string): string[] {
 }
 
 /** Сколько основ из query встречается среди основ текста. */
-export function countMatches(query: readonly string[], textStems: readonly string[]): number {
+export function countMatches(
+  query: readonly string[],
+  textStems: readonly string[],
+  opts: { prefix?: boolean } = {},
+): number {
   let n = 0;
-  for (const q of query) if (textStems.some((t) => stemsMatch(q, t))) n++;
+  for (const q of query) if (textStems.some((t) => stemsMatch(q, t, opts))) n++;
   return n;
 }
