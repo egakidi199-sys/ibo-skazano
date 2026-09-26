@@ -1,28 +1,9 @@
-// Эвристический бэкстоп к суждению модели об отказе (design D7).
-// Ловит только явные случаи; основное решение принимает LLM. Работает и в fallback,
-// где модели нет. Ложные срабатывания допустимы — пользователь переформулирует.
+// Эвристика «тезис оправдывает насилие над другими» (design D7). Отказов нет:
+// такой ответ лишь помечается как чувствительный — подбор идёт по обеим сторонам,
+// контекст раскрыт, показывается оговорка. Дополняет суждение модели (поле sensitive)
+// и работает в fallback, где модели нет.
 
 import { normalizeWord, tokenize } from "./stem";
-
-export type SafetyVerdict = "none" | "harm" | "crisis";
-
-// Угроза жизни и здоровью самого пользователя.
-const CRISIS_PATTERNS = [
-  /покончить с собой/,
-  /(убить|убью|убиваю) себя/,
-  /самоубийств/,
-  /суицид/,
-  /не хочу (больше )?жить/,
-  /не хочется (больше )?жить/,
-  /жить (больше )?не хочется/,
-  /свести сч[её]ты с жизнью/,
-  /повеситься/,
-  /вскрыть вены/,
-  /наложить на себя руки/,
-  /лишить себя жизни/,
-  /(бь[её]т|избивает|избил[аи]?|угрожает (убить|убийством)?|душит) меня/,
-  /меня (бь[её]т|избивает|избил[аи]?|душит)/,
-];
 
 // Физическое насилие над людьми.
 const VIOLENT = new Set([
@@ -42,10 +23,9 @@ const SELF_DEFENSE = /самооборон|защищая|защитить се�
 
 const WINDOW = 4;
 
-export function checkSafety(...texts: string[]): SafetyVerdict {
+export function isHarmJustification(...texts: string[]): boolean {
   const text = normalizeWord(texts.join(" \n "));
-  if (CRISIS_PATTERNS.some((re) => re.test(text))) return "crisis";
-  if (SELF_DEFENSE.test(text)) return "none";
+  if (SELF_DEFENSE.test(text)) return false;
 
   const words = tokenize(text); // однобуквенные отброшены, «не» и «ни» остаются
   for (let i = 0; i < words.length; i++) {
@@ -54,8 +34,8 @@ export function checkSafety(...texts: string[]): SafetyVerdict {
     const from = Math.max(0, i - WINDOW);
     const to = Math.min(words.length - 1, i + WINDOW);
     for (let j = from; j <= to; j++) {
-      if (j !== i && VIOLENT.has(words[j]) && words[j - 1] !== "не") return "harm";
+      if (j !== i && VIOLENT.has(words[j]) && words[j - 1] !== "не") return true;
     }
   }
-  return "none";
+  return false;
 }

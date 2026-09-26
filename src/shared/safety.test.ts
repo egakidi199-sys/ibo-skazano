@@ -1,43 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { checkSafety } from "./safety";
+import { isHarmJustification } from "./safety";
 
-describe("checkSafety: harm", () => {
+describe("isHarmJustification: оправдание вреда", () => {
   it.each([
     "Жену можно бить за непослушание",
     "Детей нужно пороть, иначе вырастут неслухами",
     "Бить ребёнка ремнём правильно?",
     "Такие люди заслуживают, чтобы их избить",
     "Иноверцев следует истреблять",
-  ])("%s → harm", (text) => {
-    expect(checkSafety(text)).toBe("harm");
+  ])("%s → true", (text) => {
+    expect(isHarmJustification(text)).toBe(true);
+  });
+
+  it("проверяет ситуацию и тезис вместе", () => {
+    expect(isHarmJustification("Спор с женой о воспитании", "Детей нужно бить")).toBe(true);
   });
 });
 
-describe("checkSafety: crisis", () => {
-  it.each([
-    "Я больше не хочу жить, всё бессмысленно",
-    "Думаю покончить с собой",
-    "Муж бьёт меня, а батюшка говорит терпеть",
-    "Меня избивает отец",
-  ])("%s → crisis", (text) => {
-    expect(checkSafety(text)).toBe("crisis");
-  });
-});
-
-describe("checkSafety: none", () => {
+describe("isHarmJustification: не оправдание", () => {
   it.each([
     "Брат ударил меня в детстве, стоит ли его простить?",
+    "Муж бьёт меня, а батюшка говорит терпеть",
     "Нельзя бить детей",
     "Не нужно бить жену",
     "Врагов нужно ненавидеть",
     "Можно ли убить нападающего, защищая семью?",
-    "Коллега постоянно опаздывает, а я молчу — правильно ли терпеть?",
+    "Не хочу больше жить",
     "Брат занял денег и не отдаёт, стоит ли простить долг?",
-  ])("%s → none", (text) => {
-    expect(checkSafety(text)).toBe("none");
-  });
-
-  it("проверяет ситуацию и тезис вместе", () => {
-    expect(checkSafety("Спор с женой о воспитании", "Детей нужно бить")).toBe("harm");
+  ])("%s → false", (text) => {
+    expect(isHarmJustification(text)).toBe(false);
   });
 });

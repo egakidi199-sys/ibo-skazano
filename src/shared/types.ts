@@ -34,8 +34,9 @@ export type QuoteResponse =
       quotes: Quote[];
       /** Прямой опоры для выбранной позиции не найдено */
       noDirectSupport: boolean;
+      /** Тезис оправдывает вред другим: обе стороны, раскрытый контекст, оговорка (design D7) */
+      sensitive: boolean;
     }
-  | { kind: "refusal"; reason: "harm" | "crisis" }
   | {
       kind: "empty";
       source: QuoteSource;

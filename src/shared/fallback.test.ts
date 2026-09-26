@@ -89,11 +89,30 @@ describe("fallbackSelect: шаг 1 — темы", () => {
     for (const q of second.quotes) expect(first.quotes.map((x) => x.ref)).not.toContain(q.ref);
   });
 
-  it("отказ при оправдании вреда", async () => {
-    expect(await run({ situation: "Спорим о воспитании", thesis: "Жену можно бить за непослушание", position: "confirm" })).toEqual({
-      kind: "refusal",
-      reason: "harm",
-    });
+  it("без отказов: тезис об оправдании вреда — обе стороны и признак sensitive", async () => {
+    const res = quotes(await run({ situation: "Спорим о воспитании", thesis: "Детей нужно бить", position: "confirm" }));
+    expect(res.sensitive).toBe(true);
+    expect(res.quotes.some((q) => q.stance === "confirm")).toBe(true);
+    expect(res.quotes.some((q) => q.stance === "refute")).toBe(true);
+  });
+
+  it("«Жену можно бить»: тема «Брак» не подтверждает тезис из-за совпадения основ", async () => {
+    const res = quotes(await run({ situation: "Спорим о семье", thesis: "Жену можно бить за непослушание", position: "confirm" }));
+    expect(res.sensitive).toBe(true);
+    for (const q of res.quotes) {
+      if (q.explanation.includes("Брак")) expect(q.stance).toBe("topic");
+    }
+  });
+
+  it("тяжёлая личная ситуация — обычный подбор без особой обработки", async () => {
+    const res = quotes(await run({ situation: "Не вижу надежды, хочется опустить руки и сдаться", position: "confirm" }));
+    expect(res.sensitive).toBe(false);
+    expect(res.quotes.length).toBeGreaterThan(0);
+  });
+
+  it("обычный тезис не помечается как чувствительный", async () => {
+    const res = quotes(await run({ situation: "Брат ударил меня в детстве, стоит ли его простить?", position: "confirm" }));
+    expect(res.sensitive).toBe(false);
   });
 
   it("без тем и без полного поиска — просьба к клиенту искать самому", async () => {

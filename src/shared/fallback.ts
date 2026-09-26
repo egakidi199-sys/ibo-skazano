@@ -5,7 +5,7 @@
 import { BOOKS } from "./corpus/books";
 import { getQuoteText, type CorpusReader } from "./corpus";
 import { formatRef, parseRef, refsOverlap, type Ref } from "./reference";
-import { checkSafety } from "./safety";
+import { isHarmJustification } from "./safety";
 import { contentStems, countMatches, normalizeWord, stem, stemsMatch, tokenize } from "./stem";
 import { THEMES, type Theme, type ThemeStance } from "./themes";
 import { LIMITS, type Position, type Quote, type QuoteRequest, type QuoteResponse, type QuoteStance } from "./types";
@@ -178,8 +178,9 @@ export async function fallbackSelect(
   reader: CorpusReader,
   { fullSearch }: FallbackOptions,
 ): Promise<QuoteResponse> {
-  const safety = checkSafety(req.situation, req.thesis ?? "");
-  if (safety !== "none") return { kind: "refusal", reason: safety };
+  // Чувствительный тезис — не отказ, а принудительные «обе стороны» (design D7).
+  const sensitive = isHarmJustification(req.situation, req.thesis ?? "");
+  const position: Position = sensitive ? "both" : req.position;
 
   const thesis = req.thesis?.trim() ?? "";
   const queryText = `${req.situation} ${thesis}`;
@@ -202,7 +203,7 @@ export async function fallbackSelect(
         .filter((x) => !excluded.some((e) => refsOverlap(e, x.ref)))
         .map((x) => ({ ref: x.ref, stance: relation(x.stance, agr), explanation: `Тема «${theme.title}».` }));
     });
-    ({ picked, noDirectSupport } = selectByPosition(byTheme, req.position));
+    ({ picked, noDirectSupport } = selectByPosition(byTheme, position));
     thesisOut = thesis || `Темы: ${themes.map((t) => t.title.toLowerCase()).join(", ")}`;
   } else {
     picked = [];
@@ -223,5 +224,5 @@ export async function fallbackSelect(
       explanation: c.explanation,
     })),
   );
-  return { kind: "quotes", source: "fallback", thesis: thesisOut, quotes, noDirectSupport };
+  return { kind: "quotes", source: "fallback", thesis: thesisOut, quotes, noDirectSupport, sensitive };
 }
