@@ -61,11 +61,19 @@ function shiftedCandidates(ref: Ref): Shifted[] {
   return out.filter((x) => validateRef(x.ref) === null);
 }
 
-/** Пояснение: не длиннее лимита и без длинных цитат — текст стиха показывается только из корпуса. */
-export function sanitizeExplanation(s: string): string {
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^а-яa-z0-9]+/g, " ").trim();
+
+/**
+ * Пояснение: не длиннее лимита и без длинных выдуманных цитат — текст Писания
+ * показывается только из корпуса. Длинная цитата допустима, только если она дословно
+ * есть в тексте стиха (verseText); иначе пояснение заменяется шаблоном.
+ */
+export function sanitizeExplanation(s: string, verseText = ""): string {
   const text = s.replace(/\s+/g, " ").trim();
   const quoted = text.match(/[«"„“][^»"“”]*[»"“”]/g) ?? [];
-  if (!text || quoted.some((q) => q.split(" ").length >= 8)) return TEMPLATE_EXPLANATION;
+  const verse = norm(verseText);
+  const invented = quoted.some((q) => q.split(" ").length >= 8 && !(verse && verse.includes(norm(q))));
+  if (!text || invented) return TEMPLATE_EXPLANATION;
   return text.length > LIMITS.explanationMax ? `${text.slice(0, LIMITS.explanationMax - 1).trimEnd()}…` : text;
 }
 

@@ -50,5 +50,5 @@
 
 ## 8. Деплой
 
-- [ ] 8.1 После подтверждения пользователя: создать GitHub-репозиторий, Cloudflare Pages проект `ibo-skazano`, KV `RATE_LIMIT_KV`, секреты через `printf | wrangler pages secret put`; проверить: `wrangler pages project list` показывает проект
-- [ ] 8.2 `npm run build && wrangler pages deploy dist`, smoke-тест на телефоне (запрос, копирование, открытка, fallback при отключённом ключе); проверить: сценарии проходят на `ibo-skazano.pages.dev`
+- [x] 8.1 После подтверждения пользователя: создать GitHub-репозиторий, Cloudflare Pages проект `ibo-skazano`, KV `RATE_LIMIT_KV`, секреты через `printf | wrangler pages secret put`; проверить: `wrangler pages project list` показывает проект
+- [x] 8.2 `npm run build && wrangler pages deploy dist`, smoke-тест на телефоне (запрос, копирование, открытка, fallback при отключённом ключе); проверить: сценарии проходят на `ibo-skazano.pages.dev`

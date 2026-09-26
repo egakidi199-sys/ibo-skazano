@@ -25,6 +25,8 @@ npm run typecheck:functions  # отдельный tsc для functions/ (Workers
 npm run build:corpus         # data/rst/*.dat → public/corpus/*.json + src/shared/corpus/books.ts, с проверкой эталонов
 ```
 
+Live: https://ibo-skazano.pages.dev · Repo: https://github.com/egakidi199-sys/ibo-skazano (public). KV для рейт-лимита — отдельный namespace `ibo-skazano-rate-limit` (не путать с `RATE_LIMIT_KV` проекта Astro). Секрет в Pages: `GROQ_API_KEY`.
+
 Деплой ручной: `npm run build && npx wrangler pages deploy dist --project-name ibo-skazano --branch main`. `wrangler login` в этой среде не работает — только `CLOUDFLARE_API_TOKEN`. Секреты: `printf '%s' '...' | npx wrangler pages secret put GROQ_API_KEY --project-name ibo-skazano` (из Bash, не PowerShell); вступают в силу со следующим деплоем. `git push` и деплой — только после подтверждения пользователя.
 
 ## Architecture

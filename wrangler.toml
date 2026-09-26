@@ -7,8 +7,8 @@ LLM_PROVIDER = "groq"
 GEMINI_MODEL = "gemini-flash-latest"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
-# KV для рейт-лимита. id боевого namespace проставляется при деплое (задача 8.1).
+# KV для рейт-лимита (namespace «ibo-skazano-rate-limit»; id не секрет).
 # Без привязки лимитер работает fail-open.
-# [[kv_namespaces]]
-# binding = "RATE_LIMIT_KV"
-# id = ""
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "d3f56c2ddc1347e28ebaa2d797976d65"

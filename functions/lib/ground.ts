@@ -17,7 +17,7 @@ export function applyGrounding(items: readonly VerifiedQuote[], output: GroundOu
     const g = byN.get(i + 1);
     if (!g) return [q];
     if (!g.relevant) return [];
-    return [{ ...q, stance: g.stance, explanation: sanitizeExplanation(g.explanation) }];
+    return [{ ...q, stance: g.stance, explanation: sanitizeExplanation(g.explanation, q.text) }];
   });
 }
 

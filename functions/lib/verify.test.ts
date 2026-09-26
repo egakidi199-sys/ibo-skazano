@@ -121,6 +121,15 @@ describe("sanitizeExplanation", () => {
     expect(sanitizeExplanation("а".repeat(400)).length).toBeLessThanOrEqual(300);
   });
 
+  it("длинная цитата, дословно взятая из стиха, допустима", () => {
+    const verse = "и прости нам долги наши, как и мы прощаем должникам нашим;";
+    const expl = "Молитва: «и прости нам долги наши, как и мы прощаем должникам нашим» — прощение долга.";
+    expect(sanitizeExplanation(expl, verse)).toBe(expl);
+    expect(sanitizeExplanation("«и прости нам долги наши, как и мы прощаем всех лентяев»", verse)).toBe(
+      "Стих подобран по смыслу ситуации.",
+    );
+  });
+
   it("длинная цитата в пояснении заменяется шаблоном", () => {
     expect(sanitizeExplanation("Сказано: «Блаженны кроткие ибо они наследуют землю и всё прочее тут»")).toBe(
       "Стих подобран по смыслу ситуации.",
