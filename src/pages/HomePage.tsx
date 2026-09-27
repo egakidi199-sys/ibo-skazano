@@ -42,8 +42,8 @@ export function HomePage() {
     toastTimer.current = window.setTimeout(() => setToast(null), 2000);
   }
 
-  async function run(more: boolean) {
-    const req: QuoteRequest = { situation: situation.trim(), thesis: thesis.trim() || undefined, position };
+  async function run(more: boolean, pos: Position = position) {
+    const req: QuoteRequest = { situation: situation.trim(), thesis: thesis.trim() || undefined, position: pos };
     const key = JSON.stringify([req.situation, req.thesis, req.position]);
     if (shownRef.current.key !== key) shownRef.current = { key, refs: [] };
     if (more) req.exclude = shownRef.current.refs.slice(-LIMITS.excludeMax);
@@ -65,6 +65,14 @@ export function HomePage() {
       setMessage(err instanceof InputError ? err.message : EMPTY_TEXT);
     } finally {
       (more ? setIsLoadingMore : setIsLoading)(false);
+    }
+  }
+
+  // Результат уже показан — смена позиции сразу перезапускает подбор для тех же ситуации и тезиса.
+  function changePosition(next: Position) {
+    setPosition(next);
+    if (next !== position && (result || message) && !isLoading && situation.trim().length >= LIMITS.situationMin) {
+      void run(false, next);
     }
   }
 
@@ -130,7 +138,7 @@ export function HomePage() {
         isLoading={isLoading}
         onSituationChange={setSituation}
         onThesisChange={setThesis}
-        onPositionChange={setPosition}
+        onPositionChange={changePosition}
         onSubmit={() => run(false)}
       />
 
